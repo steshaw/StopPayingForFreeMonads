@@ -36,10 +36,10 @@ instance MonadState Int m => Interpret Incr m where
  -- console language impl
 
 instance MonadIO m => Interpret Ask m where
- intp = undefined
+  intp (Ask s k) = liftIO $ putStrLn s >> liftIO getLine >>= pure . k
 
 instance MonadIO m => Interpret Tell m where
- intp = undefined
+  intp (Tell s a) = liftIO $ putStrLn s >> pure a
 
 
 -- key-value
@@ -109,6 +109,3 @@ interpret'_ex = interpret' n prog
     rn = undefined
     ni :: Incr ~> State Int
     ni = undefined
-
-
-

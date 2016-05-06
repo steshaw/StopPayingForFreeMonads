@@ -25,7 +25,6 @@ import           Data.Functor.Identity
 import           Prelude hiding (lookup)
 import qualified Prelude as P
 
-
 -- |a  language for modelling a calculator memory
 -- We can increment the memory, recall it, or clear it.
 data Calculator' a where
@@ -42,52 +41,52 @@ instance Functor Calculator'' where
 
 -- broken up into parts
 
-data Incr a  -- implement
-data Recall a  --implement
-data Clear a -- implement
+data Incr a   = Incr Int
+data Recall a = Recall (Int -> a)
+data Clear a  = Clear
 
 -- and put back together again
 
 type Calculator = Incr :+: Recall :+: Clear
 
 instance Functor Incr where
-  fmap = undefined
+  fmap f (Incr i) = Incr i
 
 instance Functor Recall where
-  fmap = undefined
+  fmap f (Recall k) = Recall (f . k)
 
 instance Functor Clear where
-  fmap = undefined
+  fmap f Clear = Clear
 
 -- smart constructors
 
 incr :: (Incr :<: f) => Int -> Free f ()
-incr i = undefined
+incr i = inject $ Incr i
 
 recall :: (Recall :<: f) => Free f Int
-recall = undefined
+recall = inject $ Recall Pure
 
 clear :: (Clear :<: f) => Free f ()
-clear = undefined
+clear = inject Clear
 
 -- a simple language for user interaction
 
-data Ask a -- implement
-data Tell a -- implement
+data Ask a = Ask String (String -> a) -- deriving Functor
+data Tell a = Tell String a
 
 instance Functor Ask where
-  fmap = undefined
+  fmap f (Ask s k) = Ask s (f . k)
 
 instance Functor Tell where
-  fmap = undefined
+  fmap f (Tell s a) = Tell s (f a)
 
 type Console = Ask :+: Tell
 
 ask :: (Ask :<: f) => String -> Free f String
-ask = undefined
+ask s = inject $ Ask s Pure
 
 tell :: (Tell :<: f) => String -> Free f ()
-tell = undefined
+tell s = inject $ Tell s (Pure ())
 
 -- adder: like the calculator, but increment can overflow
 
@@ -123,21 +122,17 @@ sayHelloProg = do
   name <- ask "What's your name?"
   tell $ "Hello " ++ name
 
-
 lookupProg :: Free (Ask :+: Lookup String Int :+: Tell) ()
 lookupProg = do
   name  <- ask "What's your name?"
   quota <- fromMaybe (0 :: Int) <$> lookup name
   tell $ "Hi " ++ name ++ ", your quota is " ++ show quota
 
-
 tick :: (Recall :<: f, Incr :<: f) => Free f Int
 tick = do
   y <- recall
   incr 1
   return y
-
-
 
 -- findLimit should return the limit, i.e. the number of times you
 -- can increment an adder initialized at 0 before getting an overflow
